@@ -1,4 +1,16 @@
 # Rhythm-Project
+
+How to Use This Program:
+(1) Get a .sm file
+(2) Get an audio file
+(3) In code.js, edit the line: String lines [] = loadStrings("FILEPATH.sm"); to include your file.
+(4) In code.js, edit the line: var audio = new Audio("FILEPATH.abc"); to include your file.
+(5) Open main.html in your browser. Due to Chrome and IE security protocols, if you're running it locally, you need to open it in Firefox.
+(6) There are several options:
+(.) Change your scroll direction by changing line 20 in code.js, either "Up" or "Down"
+(.) Change your offset by changing the value of manualOffset on 68 in code.js
+(.) Turn the controller visualization on or off by changing showController on line 21 to either true or false
+
 Technical Overview
 
 Parses .sm file:
@@ -18,10 +30,3 @@ Displays controller visualization:
 (3) Determines distance of the nearest note from receptors
 (4) Determines the percent of the distance to the receptors that the note has traveled since it was first found
 (5) Display the hit circle based on that percent and its destination and origination points
-
-Requirements:
-(1) A .sm file
-(2) An audio file
-(3) In code.js, include the line: String lines [] = loadStrings("DOT_SM_FILEPATH");
-(4) In code.js, include the line: var audio = new Audio("SONG_FILEPATH");
-(5) Open main.html in your browser. Due to Chrome and IE security protocols, if you're running it locally, you need to open it in Firefox.
