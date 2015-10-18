@@ -7,12 +7,10 @@ void setup() {
 } ;
 
 // load stepfile into lines array
-String lines [] = loadStrings("Island.sm");
-// String lines [] = loadStrings("sm.sm")
+String lines [] = loadStrings("FILEPATH.sm");
 
 // load music file
-var audio = new Audio("04 Island.ogg");
-// var audio = new Audio("960 BPM Speedcore.ogg")
+var audio = new Audio("FILEPATH.abc");
 audio.preload = "auto";
 
 // misc vars
