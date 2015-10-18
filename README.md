@@ -18,3 +18,10 @@ Displays controller visualization:
 (3) Determines distance of the nearest note from receptors
 (4) Determines the percent of the distance to the receptors that the note has traveled since it was first found
 (5) Display the hit circle based on that percent and its destination and origination points
+
+Requirements:
+(1) A .sm file
+(2) An audio file
+(3) In code.js, include the line: String lines [] = loadStrings("DOT_SM_FILEPATH");
+(4) In code.js, include the line: var audio = new Audio("SONG_FILEPATH");
+(5) Open main.html in your browser. Due to Chrome and IE security protocols, if you're running it locally, you need to open it in Firefox.
