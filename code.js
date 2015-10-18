@@ -1,7 +1,9 @@
 
+int maxFrameRate = 120;
+
 void setup() { 
   size(650, 800); 
-  frameRate(120);
+  frameRate(maxFrameRate);
 } ;
 
 // load stepfile into lines array
@@ -18,6 +20,7 @@ int i = 0;
 var title = "";
 var artist = "";
 var scroll = "Down";
+boolean showController = true;
 ellipseMode(CENTER);
 
 // [[beat, bpm], [beat, bpm], ...]
@@ -313,7 +316,7 @@ void draw() {
     text("Title: " + title,0,15);
 	text("Artist: " + artist,0,30);
 	text("Difficulty: " + difficulties[selectedDifficulty][0], 0, 45);
-	text("FPS:  " + round(frameRate) + " / 120", 335, 15);
+	text("FPS:  " + round(frameRate) + " / " + maxFrameRate, 335, 15);
 	
 	if(audio.ended == false){
 		// begin note and receptor display loop
@@ -397,6 +400,7 @@ void draw() {
 		}
 		
 		// begin controller visualization loop
+		if(scroll == "Down" && showController === true){
 		fill(255,255,255);
 		// button set 1
 		arc(tlButtonX,tlButtonY,buttonRadius*2,buttonRadius*2,0,PI);
@@ -411,7 +415,6 @@ void draw() {
 		arc(tlButtonX + controllerDist+buttonWidth,tlButtonY+buttonHeight,buttonRadius*2,buttonRadius*2,PI,2*PI);
 		fill(0,0,0);
 		
-		if(scroll == "Down"){
 			
 			int j = -1;
 			for(i=0; i < notePos[0].length; i++){
@@ -556,7 +559,7 @@ void draw() {
 		
 		// controller visualization 2
 		
-		if(scroll == "Down"){
+		if(scroll == "Down" && showController === true){
 			int j = -1;
 			for(i=0; i < notePos[2].length; i++){
 				if(notePos[2][i][1] > receptors[2][1]){
