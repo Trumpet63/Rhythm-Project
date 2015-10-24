@@ -1,9 +1,11 @@
 
 int maxFrameRate = 120;
+int canvasWidth = 650;
+int canvasHeight = 800;
 
-void setup() { 
-  size(650, 800); 
-  frameRate(maxFrameRate);
+void setup() {
+	size(canvasWidth, canvasHeight);
+	frameRate(maxFrameRate);
 } ;
 
 // load stepfile into lines array
@@ -45,9 +47,9 @@ boolean notesEnd = 0;
 // note position and display vars
 var notePos = [[[]],[[]],[[]],[[]]];
 if(scroll == "Down"){
-var receptorStart = [[50,620],[150,620],[250,620],[350,620]];	
+	var receptorStart = [[50,620],[150,620],[250,620],[350,620]];	
 } else {
-var receptorStart = [[50,180],[150,180],[250,180],[350,180]];
+	var receptorStart = [[50,180],[150,180],[250,180],[350,180]];
 }
 var receptors = [[],[],[],[]];
 float timeRead = 0;
@@ -107,6 +109,12 @@ var noteAngle = 0;
 var innerAngle = 45;
 var noteSize = 65;
 
+/** 
+ * Draws a vector-based arrow
+ * @param {float} arrowAngle - The angle in degrees that the arrow will be pointing (right is zero, and increases counterclockwise).
+ * @param {float} arrowSize - The height of the arrow in pixels, as well as four times the width of the arrow.
+ * @param {array} arrowCenter - The position of the center of the arrow [x,y].
+ */
 function drawArrow(arrowAngle, arrowSize, arrowCenter) {
     var m1 = 0;
 	var m2 = 0;
@@ -123,7 +131,7 @@ function drawArrow(arrowAngle, arrowSize, arrowCenter) {
     strokeWeight(1);
     if((arrowAngle+innerAngle)%90 !== 0 && (arrowAngle+90)%180 !== 0){
         arrowAngle += 0.00001;
-    }    
+    }
     m1 = (arrowCenter[0] + arrowHeight/2/tan(radians(innerAngle))*cos(radians(arrowAngle-90)) - arrowCenter[0] + arrowHeight/2*cos(radians(arrowAngle)))/(arrowCenter[1] - arrowHeight/2/tan(radians(innerAngle))*sin(radians(arrowAngle-90)) - arrowCenter[1] - arrowHeight/2*sin(radians(arrowAngle)));
     m2 = -(arrowCenter[1] + arrowHeight/2*sin(radians(arrowAngle)) + arrowWidth/2*sin(radians(arrowAngle+90)) - arrowCenter[1] + arrowHeight/2*sin(radians(arrowAngle)) - arrowWidth/2*sin(radians(arrowAngle+90)))/(arrowCenter[0] - arrowHeight/2*cos(radians(arrowAngle)) - arrowWidth/2*cos(radians(arrowAngle+90)) - arrowCenter[0] - arrowHeight/2*cos(radians(arrowAngle)) + arrowWidth/2*cos(radians(arrowAngle+90)));
     Fx = arrowCenter[0] + arrowHeight/2/tan(radians(innerAngle))*cos(radians(arrowAngle-90)) - arrowWidth*cos(radians(arrowAngle-innerAngle));
@@ -183,21 +191,21 @@ while(lines[i].charAt(0) == "#"){
 		for(j=0;j<bpms.length;j++){
 			for(k=0;k<2;k++){
 				bpms[j][k] = float(bpms[j][k]);
-			}		
+			}
 		}
 		
 		console.log(bpms);
-	}	
+	}
 	i++;
 }
 
 // this loop extracts difficulties in the form: ["difficulty", line number where notes start]
 do{	
-		
+
 	while(lines[i] != "#NOTES:" && i < lines.length){
 		i++;
 	}
-	
+
 	if(i+3 < lines.length){
 		i += 3;
 		
@@ -235,7 +243,7 @@ i = currentLine;
 
 // assumes #NOTES ends with a semicolon
 while(lines[i] != "," && lines[i] != ";"){
-	i ++;	
+	i ++;
 }
 
 // check if the notes have finished, if true, this is last loop
@@ -283,7 +291,7 @@ if(currentTime == 0 && linesProcessed == 0){
 	
 while(linesProcessed < notesInMeasure){
 	currentTime += secPerNote;
-	getNotes(currentLine);	
+	getNotes(currentLine);
 	
 	if(lineNotes.length != 0){
 		for(i=0; i < lineNotes.length; i++){
@@ -308,7 +316,7 @@ noteLocators.length = notes.length;
 
 audio.play();
 
-void draw() { 
+void draw() {
     background(255, 255, 255);
 	fill(0,0,0);
     text("Title: " + title,0,15);
@@ -326,7 +334,7 @@ void draw() {
 			
 			receptors[i][0] = receptorStart[i][0] + 11*sin(timeRead + i/3.14);
 			receptors[i][1] = receptorStart[i][1];
-		
+			
 			if(scroll == "Down"){
 				minTime = timeRead - (minNoteY - receptors[i][1])*speed/10000;
 				maxTime = timeRead - (maxNoteY - receptors[i][1])*speed/10000;
