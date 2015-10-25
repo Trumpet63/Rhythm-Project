@@ -13,6 +13,10 @@ How to Use This Program:
 
 Technical Overview
 
+Go to:
+<p>http://trumpet63.github.io/Rhythm-Project/</p>
+for documentation
+
 Parses .sm file:
 (1) Converts text into an array of strings, one string per line of the text file
 (2) Finds title, artist, offset, and bpms
