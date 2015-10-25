@@ -1,0 +1,561 @@
+<!DOCTYPE html><html lang="en"><head><title>code</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="code"><meta name="groc-project-path" content="code.js"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">code.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper">int maxFrameRate = <span class="hljs-number">120</span>;
+int canvasWidth = <span class="hljs-number">650</span>;
+int canvasHeight = <span class="hljs-number">800</span>;
+
+<span class="hljs-keyword">void</span> setup() {
+	size(canvasWidth, canvasHeight);
+	frameRate(maxFrameRate);
+} ;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>load stepfile into lines array</p></div></div><div class="code"><div class="wrapper"><span class="hljs-built_in">String</span> lines [] = loadStrings(<span class="hljs-string">"Island.sm"</span>);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>load music file</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> audio = <span class="hljs-keyword">new</span> Audio(<span class="hljs-string">"04 Island.ogg"</span>);
+audio.preload = <span class="hljs-string">"auto"</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>misc vars</p></div></div><div class="code"><div class="wrapper">int i = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> title = <span class="hljs-string">""</span>;
+<span class="hljs-keyword">var</span> artist = <span class="hljs-string">""</span>;
+<span class="hljs-keyword">var</span> scroll = <span class="hljs-string">"Down"</span>;
+boolean showController = <span class="hljs-literal">true</span>;
+ellipseMode(CENTER);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>[[beat, bpm], [beat, bpm], ...]</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> bpms = [[,]];</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>[[difficulty, line number], [difficulty, line number], ...]</p></div></div><div class="code"><div class="wrapper">array difficulties = [];</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>difficulty vars</p></div></div><div class="code"><div class="wrapper">boolean selectHardest = <span class="hljs-number">1</span>;
+int selectedDifficulty = <span class="hljs-number">0</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>sm file conversion vars</p></div></div><div class="code"><div class="wrapper">int currentLine = <span class="hljs-number">1</span>;
+int measureNum = <span class="hljs-number">1</span>;
+float currentBpm = <span class="hljs-number">0</span>;
+float secPerNote = <span class="hljs-number">0</span>;
+int linesProcessed = <span class="hljs-number">0</span>;
+float currentTime = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> notes = [[],[],[],[]];
+<span class="hljs-keyword">var</span> lineNotes = [];
+boolean notesEnd = <span class="hljs-number">0</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>note position and display vars</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> notePos = [[[]],[[]],[[]],[[]]];
+<span class="hljs-keyword">if</span>(scroll == <span class="hljs-string">"Down"</span>){
+	<span class="hljs-keyword">var</span> receptorStart = [[<span class="hljs-number">50</span>,<span class="hljs-number">620</span>],[<span class="hljs-number">150</span>,<span class="hljs-number">620</span>],[<span class="hljs-number">250</span>,<span class="hljs-number">620</span>],[<span class="hljs-number">350</span>,<span class="hljs-number">620</span>]];	
+} <span class="hljs-keyword">else</span> {
+	<span class="hljs-keyword">var</span> receptorStart = [[<span class="hljs-number">50</span>,<span class="hljs-number">180</span>],[<span class="hljs-number">150</span>,<span class="hljs-number">180</span>],[<span class="hljs-number">250</span>,<span class="hljs-number">180</span>],[<span class="hljs-number">350</span>,<span class="hljs-number">180</span>]];
+}
+<span class="hljs-keyword">var</span> receptors = [[],[],[],[]];
+float timeRead = <span class="hljs-number">0</span>;
+float timeInitial = <span class="hljs-number">0</span>;
+int viewTop = <span class="hljs-number">100</span>;
+int viewBottom = <span class="hljs-number">700</span>;
+int noteHeight = <span class="hljs-number">45</span>;
+float minNoteY = viewTop - noteHeight/<span class="hljs-number">2</span>;
+float maxNoteY = viewBottom + noteHeight/<span class="hljs-number">2</span>;
+<span class="hljs-keyword">var</span> noteLocators = [<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>];
+float minTime = <span class="hljs-number">0</span>;
+float maxTime = <span class="hljs-number">0</span>;
+float offset = <span class="hljs-number">0</span>;
+int millisStart = <span class="hljs-number">0</span>;
+int millisCurrent = <span class="hljs-number">0</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>speed in units of milliseconds per 10 pixels</p></div></div><div class="code"><div class="wrapper">float speed = <span class="hljs-number">18</span>;
+float manualOffset = -<span class="hljs-number">0.356</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>controller visualization vars</p></div></div><div class="code"><div class="wrapper">int buttonRadius = <span class="hljs-number">20</span>;
+int buttonHeight = <span class="hljs-number">90</span>;
+int buttonWidth = <span class="hljs-number">65</span>;
+int hitRadius = <span class="hljs-number">10</span>;
+int tlButtonX = <span class="hljs-number">430</span>;
+int tlButtonY = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> hit = [[tlButtonX+buttonWidth/<span class="hljs-number">2</span>, tlButtonY+buttonHeight/<span class="hljs-number">2</span>],[tlButtonX+buttonWidth/<span class="hljs-number">2</span>, tlButtonY+buttonHeight/<span class="hljs-number">2</span>]];
+float originalDist = <span class="hljs-number">1</span>;
+<span class="hljs-keyword">var</span> currentNote = [-<span class="hljs-number">1</span>,-<span class="hljs-number">1</span>];
+int nearestNote = [,];
+int receptorNum = <span class="hljs-number">0</span>;
+float nearestDist = <span class="hljs-number">0</span>;
+float movePercent = <span class="hljs-number">0</span>;
+float defaultBuffer = <span class="hljs-number">4</span>;
+float buffer = <span class="hljs-number">0</span>;
+float reactionDist = <span class="hljs-number">35</span>;
+int controllerDist = <span class="hljs-number">120</span>;
+<span class="hljs-keyword">var</span> noteA = [,];
+<span class="hljs-keyword">var</span> noteB = [,];
+int noteType = <span class="hljs-number">0</span>;
+float hitX = <span class="hljs-number">0</span>;
+float hitY = <span class="hljs-number">0</span>;
+boolean hitDown = <span class="hljs-literal">false</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>second controller visualization vars</p></div></div><div class="code"><div class="wrapper">float nearestDist2 = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> currentNote2 = [-<span class="hljs-number">1</span>,-<span class="hljs-number">1</span>];
+<span class="hljs-keyword">var</span> nearestNote2 = [,];
+float originalDist2 = <span class="hljs-number">1</span>;
+<span class="hljs-keyword">var</span> hit2 = [[tlButtonX+controllerDist+buttonWidth/<span class="hljs-number">2</span>, tlButtonY+buttonHeight/<span class="hljs-number">2</span>],[tlButtonX+controllerDist+buttonWidth/<span class="hljs-number">2</span>, tlButtonY+buttonHeight/<span class="hljs-number">2</span>]];
+float hitX2 = <span class="hljs-number">0</span>;
+float hitY2 = <span class="hljs-number">0</span>;
+float buffer2 = <span class="hljs-number">0</span>;
+boolean hitDown2 = <span class="hljs-literal">false</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>noteskin vars</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> noteAngle = <span class="hljs-number">0</span>;
+<span class="hljs-keyword">var</span> innerAngle = <span class="hljs-number">45</span>;
+<span class="hljs-keyword">var</span> noteSize = <span class="hljs-number">65</span>;</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> function drawArrow</span></p>
+<p>Draws a vector-based arrow</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>arrowAngle must be a float.</strong><br/>(The angle in degrees that the arrow will be pointing. Right is zero, and increases counterclockwise.)</p>
+</li>
+<li><p><strong>arrowSize must be a float.</strong><br/>(The height of the arrow in pixels, as well as four times the width of the arrow.)</p>
+</li>
+<li><p><strong>arrowCenter must be an array.</strong><br/>(The position of the center of the arrow [x,y].)</p>
+</li>
+</ul></div></div><div class="code"><div class="wrapper"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">drawArrow</span>(<span class="hljs-params">arrowAngle, arrowSize, arrowCenter</span>) </span>{
+    <span class="hljs-keyword">var</span> m1 = <span class="hljs-number">0</span>;
+	<span class="hljs-keyword">var</span> m2 = <span class="hljs-number">0</span>;
+	<span class="hljs-keyword">var</span> x1 = <span class="hljs-number">0</span>;
+	<span class="hljs-keyword">var</span> y1 = <span class="hljs-number">0</span>;
+	<span class="hljs-keyword">var</span> Fx = <span class="hljs-number">0</span>;
+	<span class="hljs-keyword">var</span> Fy = <span class="hljs-number">0</span>;
+	<span class="hljs-keyword">var</span> Dx = <span class="hljs-number">0</span>;
+	<span class="hljs-keyword">var</span> Dy = <span class="hljs-number">0</span>;
+	<span class="hljs-keyword">var</span> I1 = <span class="hljs-number">0</span>;
+	<span class="hljs-keyword">var</span> I2 = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">var</span> arrowWidth = arrowSize/<span class="hljs-number">4</span>;
+    <span class="hljs-keyword">var</span> arrowHeight = arrowSize;
+    strokeWeight(<span class="hljs-number">1</span>);
+    <span class="hljs-keyword">if</span>((arrowAngle+innerAngle)%<span class="hljs-number">90</span> !== <span class="hljs-number">0</span> &amp;&amp; (arrowAngle+<span class="hljs-number">90</span>)%<span class="hljs-number">180</span> !== <span class="hljs-number">0</span>){
+        arrowAngle += <span class="hljs-number">0.00001</span>;
+    }
+    m1 = (arrowCenter[<span class="hljs-number">0</span>] + arrowHeight/<span class="hljs-number">2</span>/tan(radians(innerAngle))*cos(radians(arrowAngle-<span class="hljs-number">90</span>)) - arrowCenter[<span class="hljs-number">0</span>] + arrowHeight/<span class="hljs-number">2</span>*cos(radians(arrowAngle)))/(arrowCenter[<span class="hljs-number">1</span>] - arrowHeight/<span class="hljs-number">2</span>/tan(radians(innerAngle))*sin(radians(arrowAngle-<span class="hljs-number">90</span>)) - arrowCenter[<span class="hljs-number">1</span>] - arrowHeight/<span class="hljs-number">2</span>*sin(radians(arrowAngle)));
+    m2 = -(arrowCenter[<span class="hljs-number">1</span>] + arrowHeight/<span class="hljs-number">2</span>*sin(radians(arrowAngle)) + arrowWidth/<span class="hljs-number">2</span>*sin(radians(arrowAngle+<span class="hljs-number">90</span>)) - arrowCenter[<span class="hljs-number">1</span>] + arrowHeight/<span class="hljs-number">2</span>*sin(radians(arrowAngle)) - arrowWidth/<span class="hljs-number">2</span>*sin(radians(arrowAngle+<span class="hljs-number">90</span>)))/(arrowCenter[<span class="hljs-number">0</span>] - arrowHeight/<span class="hljs-number">2</span>*cos(radians(arrowAngle)) - arrowWidth/<span class="hljs-number">2</span>*cos(radians(arrowAngle+<span class="hljs-number">90</span>)) - arrowCenter[<span class="hljs-number">0</span>] - arrowHeight/<span class="hljs-number">2</span>*cos(radians(arrowAngle)) + arrowWidth/<span class="hljs-number">2</span>*cos(radians(arrowAngle+<span class="hljs-number">90</span>)));
+    Fx = arrowCenter[<span class="hljs-number">0</span>] + arrowHeight/<span class="hljs-number">2</span>/tan(radians(innerAngle))*cos(radians(arrowAngle-<span class="hljs-number">90</span>)) - arrowWidth*cos(radians(arrowAngle-innerAngle));
+    Fy = arrowCenter[<span class="hljs-number">1</span>] - arrowHeight/<span class="hljs-number">2</span>/tan(radians(innerAngle))*sin(radians(arrowAngle-<span class="hljs-number">90</span>)) + arrowWidth*sin(radians(arrowAngle-innerAngle));
+    Dx = arrowCenter[<span class="hljs-number">0</span>] - arrowHeight/<span class="hljs-number">2</span>*cos(radians(arrowAngle)) - arrowWidth/<span class="hljs-number">2</span>*cos(radians(arrowAngle+<span class="hljs-number">90</span>));
+    Dy = arrowCenter[<span class="hljs-number">1</span>] + arrowHeight/<span class="hljs-number">2</span>*sin(radians(arrowAngle)) + arrowWidth/<span class="hljs-number">2</span>*sin(radians(arrowAngle+<span class="hljs-number">90</span>));
+    I1 = Fy + m1*Fx;
+    I2 = Dy + m2*Dx;
+    x1 = (I1 - I2)/(m1 - m2);
+    y1 = -m1*x1 + I1;
+    
+    beginShape();
+    </div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>left base</p></div></div><div class="code"><div class="wrapper">    vertex(arrowCenter[<span class="hljs-number">0</span>] - arrowHeight/<span class="hljs-number">2</span>*cos(radians(arrowAngle)) + arrowWidth/<span class="hljs-number">2</span>*cos(radians(arrowAngle+<span class="hljs-number">90</span>)), arrowCenter[<span class="hljs-number">1</span>] + arrowHeight/<span class="hljs-number">2</span>*sin(radians(arrowAngle)) - arrowWidth/<span class="hljs-number">2</span>*sin(radians(arrowAngle+<span class="hljs-number">90</span>)));</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>right base</p></div></div><div class="code"><div class="wrapper">    vertex(arrowCenter[<span class="hljs-number">0</span>] - arrowHeight/<span class="hljs-number">2</span>*cos(radians(arrowAngle)) - arrowWidth/<span class="hljs-number">2</span>*cos(radians(arrowAngle+<span class="hljs-number">90</span>)), arrowCenter[<span class="hljs-number">1</span>] + arrowHeight/<span class="hljs-number">2</span>*sin(radians(arrowAngle)) + arrowWidth/<span class="hljs-number">2</span>*sin(radians(arrowAngle+<span class="hljs-number">90</span>)));</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>right inner</p></div></div><div class="code"><div class="wrapper">    vertex(x1, y1);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>right arm bottom</p></div></div><div class="code"><div class="wrapper">    vertex(arrowCenter[<span class="hljs-number">0</span>] + arrowHeight/<span class="hljs-number">2</span>/tan(radians(innerAngle))*cos(radians(arrowAngle-<span class="hljs-number">90</span>)) - arrowWidth*cos(radians(arrowAngle-innerAngle)), arrowCenter[<span class="hljs-number">1</span>] - arrowHeight/<span class="hljs-number">2</span>/tan(radians(innerAngle))*sin(radians(arrowAngle-<span class="hljs-number">90</span>)) + arrowWidth*sin(radians(arrowAngle-innerAngle)));</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>right arm top</p></div></div><div class="code"><div class="wrapper">    vertex(arrowCenter[<span class="hljs-number">0</span>] + arrowHeight/<span class="hljs-number">2</span>/tan(radians(innerAngle))*cos(radians(arrowAngle-<span class="hljs-number">90</span>)), arrowCenter[<span class="hljs-number">1</span>] - arrowHeight/<span class="hljs-number">2</span>/tan(radians(innerAngle))*sin(radians(arrowAngle-<span class="hljs-number">90</span>)));</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>tip</p></div></div><div class="code"><div class="wrapper">    vertex(arrowCenter[<span class="hljs-number">0</span>] + arrowHeight/<span class="hljs-number">2</span>*cos(radians(arrowAngle)), arrowCenter[<span class="hljs-number">1</span>] - arrowHeight/<span class="hljs-number">2</span>*sin(radians(arrowAngle)));</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>left arm top</p></div></div><div class="code"><div class="wrapper">    vertex(arrowCenter[<span class="hljs-number">0</span>] - arrowHeight/<span class="hljs-number">2</span>/tan(radians(innerAngle))*cos(radians(arrowAngle-<span class="hljs-number">90</span>)), arrowCenter[<span class="hljs-number">1</span>] + arrowHeight/<span class="hljs-number">2</span>/tan(radians(innerAngle))*sin(radians(arrowAngle-<span class="hljs-number">90</span>)));</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>left arm bottom</p></div></div><div class="code"><div class="wrapper">    vertex(arrowCenter[<span class="hljs-number">0</span>] - arrowHeight/<span class="hljs-number">2</span>/tan(radians(innerAngle))*cos(radians(arrowAngle-<span class="hljs-number">90</span>)) - arrowWidth*cos(radians(arrowAngle+innerAngle)), arrowCenter[<span class="hljs-number">1</span>] + arrowHeight/<span class="hljs-number">2</span>/tan(radians(innerAngle))*sin(radians(arrowAngle-<span class="hljs-number">90</span>)) + arrowWidth*sin(radians(arrowAngle+innerAngle)));</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>left inner</p></div></div><div class="code"><div class="wrapper">    vertex(x1 + arrowWidth*cos(radians(arrowAngle+<span class="hljs-number">90</span>)), y1 - arrowWidth*sin(radians(arrowAngle+<span class="hljs-number">90</span>)));
+    endShape(CLOSE);
+};</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Module Stepfile conversion </span></p>
+<p>Converts the stepfile into note, timing, and other information</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>lines must be an array.</strong><br/>(The stepfile (.sm) with each element of the array being a line text from the file.)</li>
+</ul>
+<p><strong>Returns an array</strong><br/>(<p><strong>bpms</strong></p> - The beats per minute of a section of music and the beat at which that bpm goes into effect, in the form [[beat, bpm], ...] for each change in bpm, with the first bpm being defined at beat 0 <p></p>)<br/><strong>and</strong> <strong>Returns an array</strong><br/>(<p><strong>difficulties</strong></p> - The list of difficulties available within a stepfile, and the line number in lines[] at which the notes for that difficulty start, in the form [[difficulty, line number], ...]. <p></p>)<br/><strong>and</strong> <strong>Returns an array</strong><br/>(<p><strong>notes</strong></p> - All of the notes contained in a specified difficulty, organized so that notes[0] = the set of notes for receptor 1, and notes[i][j] = the time position relative to the start of the notes (does not factor in offset at this point).)</p></div></div><div class="code"><div class="wrapper"> </div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Begin stepfile conversion <p></p>
+Grab stepfile info: title, artist, offset, bpms</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">while</span>(lines[i].charAt(<span class="hljs-number">0</span>) == <span class="hljs-string">"#"</span>){
+	<span class="hljs-comment">//console.log(lines[i]);</span>
+	<span class="hljs-keyword">if</span>(lines[i].substring(<span class="hljs-number">1</span>,lines[i].indexOf(<span class="hljs-string">":"</span>)) == <span class="hljs-string">"TITLE"</span>){
+		title = lines[i].substring(lines[i].indexOf(<span class="hljs-string">":"</span>)+<span class="hljs-number">1</span>,lines[i].indexOf(<span class="hljs-string">";"</span>));
+	}
+	<span class="hljs-keyword">if</span>(lines[i].substring(<span class="hljs-number">1</span>,lines[i].indexOf(<span class="hljs-string">":"</span>)) == <span class="hljs-string">"ARTIST"</span>){
+		artist = lines[i].substring(lines[i].indexOf(<span class="hljs-string">":"</span>)+<span class="hljs-number">1</span>,lines[i].indexOf(<span class="hljs-string">";"</span>));
+	}
+	<span class="hljs-keyword">if</span>(lines[i].substring(<span class="hljs-number">1</span>,lines[i].indexOf(<span class="hljs-string">":"</span>)) == <span class="hljs-string">"OFFSET"</span>){
+		offset = float(lines[i].substring(lines[i].indexOf(<span class="hljs-string">":"</span>)+<span class="hljs-number">1</span>,lines[i].indexOf(<span class="hljs-string">";"</span>)));
+	}
+	</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>assumes bpms are in one line</p></div></div><div class="code"><div class="wrapper">	<span class="hljs-keyword">if</span>(lines[i].substring(<span class="hljs-number">1</span>,lines[i].indexOf(<span class="hljs-string">":"</span>)) == <span class="hljs-string">"BPMS"</span>){
+		<span class="hljs-keyword">var</span> bpmString = lines[i].substring(lines[i].indexOf(<span class="hljs-string">":"</span>)+<span class="hljs-number">1</span>,lines[i].indexOf(<span class="hljs-string">";"</span>));
+		<span class="hljs-keyword">var</span> bpmSubstrings = bpmString.split(<span class="hljs-string">","</span>);
+		<span class="hljs-keyword">for</span>(j=<span class="hljs-number">0</span>;j&lt;bpmSubstrings.length;j++){
+			bpms[j] = bpmSubstrings[j].split(<span class="hljs-string">"="</span>);
+		}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>convert the array of strings to an array of floats</p></div></div><div class="code"><div class="wrapper">		<span class="hljs-keyword">for</span>(j=<span class="hljs-number">0</span>;j&lt;bpms.length;j++){
+			<span class="hljs-keyword">for</span>(k=<span class="hljs-number">0</span>;k&lt;<span class="hljs-number">2</span>;k++){
+				bpms[j][k] = float(bpms[j][k]);
+			}
+		}
+		
+		<span class="hljs-built_in">console</span>.log(bpms);
+	}
+	i++;
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>this loop extracts difficulties in the form: [&quot;difficulty&quot;, line number where notes start]</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">do</span>{	
+
+	<span class="hljs-keyword">while</span>(lines[i] != <span class="hljs-string">"#NOTES:"</span> &amp;&amp; i &lt; lines.length){
+		i++;
+	}
+
+	<span class="hljs-keyword">if</span>(i+<span class="hljs-number">3</span> &lt; lines.length){
+		i += <span class="hljs-number">3</span>;
+		</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>encountered bizarre error where difficulties array would simply return &quot;C6&quot; or &quot;C5&quot;, fixed after PC restart</p></div></div><div class="code"><div class="wrapper">		append(difficulties,[lines[i].substring(<span class="hljs-number">5</span>,lines[i].length-<span class="hljs-number">1</span>),i+<span class="hljs-number">3</span>]);
+	}
+	
+}
+<span class="hljs-keyword">while</span>(i &lt; lines.length);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>NOTE: lines array starts counting at zero, therefore values may seem like they are off by one</p></div></div><div class="code"><div class="wrapper"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getNotes</span>(<span class="hljs-params">j</span>)</span>{
+	lineNotes = [];
+	<span class="hljs-keyword">for</span>(i=<span class="hljs-number">0</span>; i &lt; lines[j].length; i++){
+		<span class="hljs-keyword">if</span>(lines[j].charAt(i) == <span class="hljs-number">1</span>){
+			append(lineNotes, i);
+		}
+	}	
+}
+
+<span class="hljs-keyword">if</span>(selectHardest){
+ 	selectedDifficulty = difficulties.length - <span class="hljs-number">1</span>;
+ } <span class="hljs-keyword">else</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>user prompt to select difficulty goes here</p></div></div><div class="code"><div class="wrapper">}
+
+currentLine = difficulties[selectedDifficulty][<span class="hljs-number">1</span>];</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>begin note conversion loop</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">do</span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>count number of notes in a measure</p></div></div><div class="code"><div class="wrapper">i = currentLine;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>assumes #NOTES ends with a semicolon</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">while</span>(lines[i] != <span class="hljs-string">","</span> &amp;&amp; lines[i] != <span class="hljs-string">";"</span>){
+	i ++;
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>check if the notes have finished, if true, this is last loop</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">if</span>(lines[i] == <span class="hljs-string">";"</span>){
+	notesEnd = <span class="hljs-number">1</span>;
+} <span class="hljs-keyword">else</span> {
+	notesEnd = <span class="hljs-number">0</span>;
+}
+
+notesInMeasure = i - currentLine;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>console.log(notesInMeasure);</p></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>get current bpm
+measureNum is initially 1
+assumes bpm starts at the beginning of a measure
+assumes bpms are in chronological order</p></div></div><div class="code"><div class="wrapper">i = bpms.length - <span class="hljs-number">1</span>;
+<span class="hljs-keyword">while</span>(bpms[i][<span class="hljs-number">0</span>]/<span class="hljs-number">4</span> &gt; measureNum - <span class="hljs-number">1</span>){
+	i --;
+}
+currentBpm = bpms[i][<span class="hljs-number">1</span>];</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>console.log(bpms[i][1]);</p></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>get seconds per notes</p></div></div><div class="code"><div class="wrapper">secPerNote = <span class="hljs-number">240</span> / currentBpm / notesInMeasure;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>console.log(secPerNote);</p></div></div><div class="code"><div class="wrapper">linesProcessed = <span class="hljs-number">0</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>put notes into array with time values</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">if</span>(currentTime == <span class="hljs-number">0</span> &amp;&amp; linesProcessed == <span class="hljs-number">0</span>){
+	getNotes(currentLine);
+	
+	<span class="hljs-keyword">if</span>(lineNotes.length != <span class="hljs-number">0</span>){
+		<span class="hljs-keyword">for</span>(i=<span class="hljs-number">0</span>; i &lt; lineNotes.length; i++){
+			append(notes[lineNotes[i]], <span class="hljs-number">0</span>);
+		}
+	}
+	
+	linesProcessed = <span class="hljs-number">1</span>;
+	currentLine ++;
+	
+} 
+	
+<span class="hljs-keyword">while</span>(linesProcessed &lt; notesInMeasure){
+	currentTime += secPerNote;
+	getNotes(currentLine);
+	
+	<span class="hljs-keyword">if</span>(lineNotes.length != <span class="hljs-number">0</span>){
+		<span class="hljs-keyword">for</span>(i=<span class="hljs-number">0</span>; i &lt; lineNotes.length; i++){
+			append(notes[lineNotes[i]], currentTime);
+		}
+	}
+	linesProcessed ++;
+	currentLine ++;
+}
+
+currentLine ++;
+measureNum ++;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>console.log(linesProcessed + &quot; , &quot; + currentLine + &quot; , &quot; + currentBpm);</p></div></div><div class="code"><div class="wrapper">}
+<span class="hljs-keyword">while</span>(notesEnd == <span class="hljs-number">0</span>);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>end stepfile conversion <p></p></p></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>initialize time for display loop</p></div></div><div class="code"><div class="wrapper">millisStart = millis();
+timeInitial = offset + manualOffset;
+noteLocators.length = notes.length;
+
+audio.play();
+
+<span class="hljs-keyword">void</span> draw() {
+    background(<span class="hljs-number">255</span>, <span class="hljs-number">255</span>, <span class="hljs-number">255</span>);
+	fill(<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>);
+    text(<span class="hljs-string">"Title: "</span> + title,<span class="hljs-number">0</span>,<span class="hljs-number">15</span>);
+	text(<span class="hljs-string">"Artist: "</span> + artist,<span class="hljs-number">0</span>,<span class="hljs-number">30</span>);
+	text(<span class="hljs-string">"Difficulty: "</span> + difficulties[selectedDifficulty][<span class="hljs-number">0</span>], <span class="hljs-number">0</span>, <span class="hljs-number">45</span>);
+	text(<span class="hljs-string">"FPS:  "</span> + round(frameRate) + <span class="hljs-string">" / "</span> + maxFrameRate, <span class="hljs-number">335</span>, <span class="hljs-number">15</span>);
+	
+	<span class="hljs-keyword">if</span>(audio.ended == <span class="hljs-literal">false</span>){
+		</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Module Display notes and receptors </span></p>
+<p>Converts notes[] timing information into position information and displays it</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>notes must be an array.</strong><br/>(All of the notes contained in a specified difficulty, organized so that notes[0] = the set of notes for receptor 1, and notes[i][j] = the time position relative to the start of the notes (does not factor in offset at this point).)</li>
+</ul>
+<p><strong>Returns an array</strong><br/>(<p><strong>receptors</strong></p> - The position of each receptor, where the position of receptor (i+1) is given by receptors[i] = [x,y] (in pixels). <p></p>)<br/><strong>and</strong> <strong>Returns an array</strong><br/>(<p><strong>notePos</strong></p> - The position of each note on screen, in the form notePos[receptorNumber][noteNumber] = [x,y]. Receptor and note number initialize at zero and notes are in ascending chronological order. <p></p>)<br/><strong>and</strong> <strong>Returns an array</strong><br/>(<p><strong>noteLocators</strong></p> - The position of the earliest note on screen in notes[], or, the array index for each earliest note for each receptor, and noteLocators[receptorNumber] = #)</p></div></div><div class="code"><div class="wrapper">		</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>begin note and receptor display loop</p></div></div><div class="code"><div class="wrapper">		millisCurrent = millis();
+		timeRead = timeInitial + (millisCurrent - millisStart)/<span class="hljs-number">1000</span>;
+		text(<span class="hljs-string">"Read Time = "</span> + timeRead.toFixed(<span class="hljs-number">3</span>) + <span class="hljs-string">"s"</span>, <span class="hljs-number">0</span>, <span class="hljs-number">60</span>);
+		
+		<span class="hljs-keyword">for</span>(i=<span class="hljs-number">0</span>; i &lt; receptors.length; i++){
+			
+			receptors[i][<span class="hljs-number">0</span>] = receptorStart[i][<span class="hljs-number">0</span>] + <span class="hljs-number">11</span>*sin(timeRead + i/<span class="hljs-number">3.14</span>);
+			receptors[i][<span class="hljs-number">1</span>] = receptorStart[i][<span class="hljs-number">1</span>];
+			
+			<span class="hljs-keyword">if</span>(scroll == <span class="hljs-string">"Down"</span>){
+				minTime = timeRead - (minNoteY - receptors[i][<span class="hljs-number">1</span>])*speed/<span class="hljs-number">10000</span>;
+				maxTime = timeRead - (maxNoteY - receptors[i][<span class="hljs-number">1</span>])*speed/<span class="hljs-number">10000</span>;
+			} <span class="hljs-keyword">else</span> {
+				maxTime = timeRead + (minNoteY - receptors[i][<span class="hljs-number">1</span>])*speed/<span class="hljs-number">10000</span>;
+				minTime = timeRead + (maxNoteY - receptors[i][<span class="hljs-number">1</span>])*speed/<span class="hljs-number">10000</span>;
+			}
+			
+			<span class="hljs-keyword">while</span>(notes[i][noteLocators[i]] &lt; maxTime){
+				noteLocators[i] ++;
+			}
+			
+			notePos[i].length = <span class="hljs-number">0</span>;
+			</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>populate note positions</p></div></div><div class="code"><div class="wrapper">			j = noteLocators[i];
+			
+			<span class="hljs-keyword">while</span>(notes[i][j] &lt;= minTime){
+				<span class="hljs-keyword">if</span>(scroll == <span class="hljs-string">"Down"</span>){
+					notePos[i].push([receptors[i][<span class="hljs-number">0</span>], receptors[i][<span class="hljs-number">1</span>] - (notes[i][j] - timeRead)*<span class="hljs-number">10000</span>/speed]);
+				} <span class="hljs-keyword">else</span> {
+					notePos[i].push([receptors[i][<span class="hljs-number">0</span>], receptors[i][<span class="hljs-number">1</span>] + (notes[i][j] - timeRead)*<span class="hljs-number">10000</span>/speed]);
+				}
+				j++;
+			}
+			</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>draw receptors</p></div></div><div class="code"><div class="wrapper">			fill(<span class="hljs-number">255</span>,<span class="hljs-number">255</span>,<span class="hljs-number">255</span>);
+			<span class="hljs-keyword">if</span>(i == <span class="hljs-number">0</span>){
+				noteAngle = <span class="hljs-number">180</span>;
+			}
+			<span class="hljs-keyword">if</span>(i == <span class="hljs-number">1</span>){
+				noteAngle = <span class="hljs-number">270</span>;
+			}
+			<span class="hljs-keyword">if</span>(i == <span class="hljs-number">2</span>){
+				noteAngle = <span class="hljs-number">90</span>;
+			}
+			<span class="hljs-keyword">if</span>(i == <span class="hljs-number">3</span>){
+				noteAngle = <span class="hljs-number">0</span>;
+			}
+			drawArrow(noteAngle, noteSize, receptors[i]);
+			</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>draw notes</p></div></div><div class="code"><div class="wrapper">			fill(<span class="hljs-number">255</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>);
+			<span class="hljs-keyword">for</span>(j=<span class="hljs-number">0</span>; j &lt; notePos[i].length; j++){
+				<span class="hljs-keyword">if</span>(i == <span class="hljs-number">0</span>){
+				noteAngle = <span class="hljs-number">180</span>;
+				}
+				<span class="hljs-keyword">if</span>(i == <span class="hljs-number">1</span>){
+					noteAngle = <span class="hljs-number">270</span>;
+				}
+				<span class="hljs-keyword">if</span>(i == <span class="hljs-number">2</span>){
+					noteAngle = <span class="hljs-number">90</span>;
+				}
+				<span class="hljs-keyword">if</span>(i == <span class="hljs-number">3</span>){
+					noteAngle = <span class="hljs-number">0</span>;
+				}
+				drawArrow(noteAngle, noteSize, notePos[i][j]);
+				</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>if(scroll == &quot;Down&quot;){
+var test = timeRead - (notePos[i][j][1] - receptors[i][1])*speed/10000;</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-comment">// else {</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>var test = timeRead + (notePos[i][j][1] - receptors[i][1])*speed/10000;</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-comment">// </span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>text(test.toFixed(3), notePos[i][j][0] + 45, notePos[i][j][1] + 5);</p></div></div><div class="code"><div class="wrapper">				
+			}
+			
+		}
+		</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Module Controller visualization</span></p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>notePos must be an array.</strong><br/>(The position of each note on screen, in the form notePos[receptorNumber][noteNumber] = [x,y]. Receptor and note number initialize at zero and notes are in ascending chronological order.)</p>
+</li>
+<li><p><strong>receptors must be an array.</strong><br/>(The position of each receptor, where the position of receptor (i+1) is given by receptors[i] = [x,y] (in pixels).)</p>
+</li>
+<li><p><strong>noteLocators must be an array.</strong><br/>(The position of the earliest note on screen in notes[], or, the array index for each earliest note for each receptor, and noteLocators[receptorNumber] = #.)</p>
+</li>
+</ul>
+<p><strong>Returns an array</strong><br/>(<p><strong>hit</strong></p> - The old and new position of the hit circle, where hit[0] = [x_old, y_old] and hit[1] = [x_new, y_new])</p></div></div><div class="code"><div class="wrapper">		</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>begin controller visualization loop</p></div></div><div class="code"><div class="wrapper">		<span class="hljs-keyword">if</span>(scroll == <span class="hljs-string">"Down"</span> &amp;&amp; showController === <span class="hljs-literal">true</span>){
+		fill(<span class="hljs-number">255</span>,<span class="hljs-number">255</span>,<span class="hljs-number">255</span>);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>button set 1</p></div></div><div class="code"><div class="wrapper">		arc(tlButtonX,tlButtonY,buttonRadius*<span class="hljs-number">2</span>,buttonRadius*<span class="hljs-number">2</span>,<span class="hljs-number">0</span>,PI);
+		arc(tlButtonX,tlButtonY+buttonHeight,buttonRadius*<span class="hljs-number">2</span>,buttonRadius*<span class="hljs-number">2</span>,PI,<span class="hljs-number">2</span>*PI);
+		arc(tlButtonX+buttonWidth,tlButtonY,buttonRadius*<span class="hljs-number">2</span>,buttonRadius*<span class="hljs-number">2</span>,<span class="hljs-number">0</span>,PI);
+		arc(tlButtonX+buttonWidth,tlButtonY+buttonHeight,buttonRadius*<span class="hljs-number">2</span>,buttonRadius*<span class="hljs-number">2</span>,PI,<span class="hljs-number">2</span>*PI);
+		</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>button set 2</p></div></div><div class="code"><div class="wrapper">		arc(tlButtonX + controllerDist,tlButtonY,buttonRadius*<span class="hljs-number">2</span>,buttonRadius*<span class="hljs-number">2</span>,<span class="hljs-number">0</span>,PI);
+		arc(tlButtonX + controllerDist,tlButtonY+buttonHeight,buttonRadius*<span class="hljs-number">2</span>,buttonRadius*<span class="hljs-number">2</span>,PI,<span class="hljs-number">2</span>*PI);
+		arc(tlButtonX + controllerDist+buttonWidth,tlButtonY,buttonRadius*<span class="hljs-number">2</span>,buttonRadius*<span class="hljs-number">2</span>,<span class="hljs-number">0</span>,PI);
+		arc(tlButtonX + controllerDist+buttonWidth,tlButtonY+buttonHeight,buttonRadius*<span class="hljs-number">2</span>,buttonRadius*<span class="hljs-number">2</span>,PI,<span class="hljs-number">2</span>*PI);
+		fill(<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>);
+		
+			
+			int j = -<span class="hljs-number">1</span>;
+			<span class="hljs-keyword">for</span>(i=<span class="hljs-number">0</span>; i &lt; notePos[<span class="hljs-number">0</span>].length; i++){
+				<span class="hljs-keyword">if</span>(notePos[<span class="hljs-number">0</span>][i][<span class="hljs-number">1</span>] &gt; receptors[<span class="hljs-number">0</span>][<span class="hljs-number">1</span>]){
+					j = i;
+				}
+			}
+			<span class="hljs-keyword">if</span>(notePos[<span class="hljs-number">0</span>].length - <span class="hljs-number">1</span> &gt; j){
+				j ++;
+			} <span class="hljs-keyword">else</span> {
+				j = -<span class="hljs-number">1</span>;
+			}
+			<span class="hljs-keyword">if</span>(notePos[<span class="hljs-number">0</span>].length == <span class="hljs-number">0</span> || j == -<span class="hljs-number">1</span>){
+				noteA = [-<span class="hljs-number">10000</span>, j];
+			} <span class="hljs-keyword">else</span> {
+				noteA = [notePos[<span class="hljs-number">0</span>][j][<span class="hljs-number">1</span>] , j + <span class="hljs-number">1</span>];
+			}
+			
+			int j = -<span class="hljs-number">1</span>;
+			<span class="hljs-keyword">for</span>(i=<span class="hljs-number">0</span>; i &lt; notePos[<span class="hljs-number">1</span>].length; i++){
+				<span class="hljs-keyword">if</span>(notePos[<span class="hljs-number">1</span>][i][<span class="hljs-number">1</span>] &gt; receptors[<span class="hljs-number">1</span>][<span class="hljs-number">1</span>]){
+					j = i;
+				}
+			}
+			<span class="hljs-keyword">if</span>(notePos[<span class="hljs-number">1</span>].length - <span class="hljs-number">1</span> &gt; j){
+				j ++;
+			} <span class="hljs-keyword">else</span> {
+				j = -<span class="hljs-number">1</span>;
+			}
+			<span class="hljs-keyword">if</span>(notePos[<span class="hljs-number">1</span>].length == <span class="hljs-number">0</span> || j == -<span class="hljs-number">1</span>){
+				noteB = [-<span class="hljs-number">10000</span>, j];
+			} <span class="hljs-keyword">else</span> {
+				noteB = [notePos[<span class="hljs-number">1</span>][j][<span class="hljs-number">1</span>] , j + <span class="hljs-number">1</span>];
+			}
+			</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>if there is no nearest note, do not cause nearest note to update</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">if</span>(noteA[<span class="hljs-number">1</span>] == -<span class="hljs-number">1</span>){
+				noteA = [-<span class="hljs-number">100000</span>, currentNote[<span class="hljs-number">2</span>]];
+			} 
+			<span class="hljs-keyword">if</span>(noteB[<span class="hljs-number">1</span>] == -<span class="hljs-number">1</span>){
+				noteB = [-<span class="hljs-number">100000</span>, currentNote[<span class="hljs-number">2</span>]];
+			}
+			
+			<span class="hljs-keyword">if</span>(noteA[<span class="hljs-number">0</span>] &gt; noteB[<span class="hljs-number">0</span>]){</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>noteType = 0;</p></div></div><div class="code"><div class="wrapper">				nearestDist = receptors[<span class="hljs-number">0</span>][<span class="hljs-number">1</span>] - noteA[<span class="hljs-number">0</span>];
+				nearestNote = [<span class="hljs-number">0</span>, noteA[<span class="hljs-number">1</span>] + noteLocators[<span class="hljs-number">0</span>] + <span class="hljs-number">1</span>];
+			}
+			<span class="hljs-keyword">if</span>(noteB[<span class="hljs-number">0</span>] &gt; noteA[<span class="hljs-number">0</span>]){</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>noteType = 1;</p></div></div><div class="code"><div class="wrapper">				nearestDist = receptors[<span class="hljs-number">1</span>][<span class="hljs-number">1</span>] - noteB[<span class="hljs-number">0</span>];
+				nearestNote = [<span class="hljs-number">1</span>, noteB[<span class="hljs-number">1</span>] + noteLocators[<span class="hljs-number">1</span>] + <span class="hljs-number">1</span>];
+			}
+			<span class="hljs-keyword">if</span>(noteA[<span class="hljs-number">0</span>] ==  noteB[<span class="hljs-number">0</span>]){</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>noteType = 2;</p></div></div><div class="code"><div class="wrapper">				nearestDist = receptors[<span class="hljs-number">0</span>][<span class="hljs-number">1</span>] - noteA[<span class="hljs-number">0</span>];
+				nearestNote = [<span class="hljs-number">2</span>, noteA[<span class="hljs-number">1</span>] + noteLocators[<span class="hljs-number">0</span>] + <span class="hljs-number">1</span>];
+			}
+			</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>text(nearestNote + &quot; , &quot; + nearestDist.toFixed(3),receptors[0][0]-25,receptors[0][1] + 30);
+text(nearestDist.toFixed(3),receptors[1][0],receptors[1][1] + 30);
+text((nearestDist &lt; 5000) + &quot; , &quot; + (currentNote[0] != nearestNote[0]) + &quot; , &quot; + (currentNote[1] != nearestNote[1]), 0, 120);
+text(currentNote, 0, 135);
+text(nearestNote, 0, 150);</p></div></div><div class="code"><div class="wrapper">			</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>replace old note with new note when appropriate</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">if</span>(nearestDist &lt; <span class="hljs-number">5000</span> &amp;&amp; ((currentNote[<span class="hljs-number">0</span>] != nearestNote[<span class="hljs-number">0</span>]) || (currentNote[<span class="hljs-number">1</span>] != nearestNote[<span class="hljs-number">1</span>]))){
+				
+				currentNote[<span class="hljs-number">0</span>] = nearestNote[<span class="hljs-number">0</span>];
+				currentNote[<span class="hljs-number">1</span>] = nearestNote[<span class="hljs-number">1</span>];
+				originalDist = nearestDist;
+				</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>do up</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">if</span>(hitDown == <span class="hljs-literal">false</span>){
+					hitDown = <span class="hljs-literal">true</span>;
+					</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>old = new</p></div></div><div class="code"><div class="wrapper">					hit[<span class="hljs-number">0</span>] = hit[<span class="hljs-number">1</span>];
+					
+					<span class="hljs-keyword">if</span>(currentNote[<span class="hljs-number">0</span>] == <span class="hljs-number">0</span>) {
+						hit[<span class="hljs-number">1</span>] = [tlButtonX, tlButtonY + buttonRadius + hitRadius];
+					}
+					<span class="hljs-keyword">if</span>(currentNote[<span class="hljs-number">0</span>] == <span class="hljs-number">1</span>) {
+						hit[<span class="hljs-number">1</span>] = [tlButtonX + buttonWidth, tlButtonY + buttonRadius + hitRadius];
+					}
+					<span class="hljs-keyword">if</span>(currentNote[<span class="hljs-number">0</span>] == <span class="hljs-number">2</span>) {
+						hit[<span class="hljs-number">1</span>] = [tlButtonX + buttonWidth/<span class="hljs-number">2</span>, tlButtonY + hitRadius];
+					}
+					</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>do down</p></div></div><div class="code"><div class="wrapper">				} <span class="hljs-keyword">else</span> {
+					hitDown = <span class="hljs-literal">false</span>;
+					</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>old = new</p></div></div><div class="code"><div class="wrapper">					hit[<span class="hljs-number">0</span>] = hit[<span class="hljs-number">1</span>];
+					
+					<span class="hljs-keyword">if</span>(currentNote[<span class="hljs-number">0</span>] == <span class="hljs-number">0</span>) {
+						hit[<span class="hljs-number">1</span>] = [tlButtonX, tlButtonY + buttonHeight - buttonRadius - hitRadius];
+					}
+					<span class="hljs-keyword">if</span>(currentNote[<span class="hljs-number">0</span>] == <span class="hljs-number">1</span>) {
+						hit[<span class="hljs-number">1</span>] = [tlButtonX + buttonWidth, tlButtonY + buttonHeight - buttonRadius - hitRadius];
+					}
+					<span class="hljs-keyword">if</span>(currentNote[<span class="hljs-number">0</span>] == <span class="hljs-number">2</span>) {
+						hit[<span class="hljs-number">1</span>] = [tlButtonX + buttonWidth/<span class="hljs-number">2</span>, tlButtonY + buttonHeight - hitRadius];
+					}
+					
+				}
+				
+				
+			}
+			</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>calculate percent animation</p></div></div><div class="code"><div class="wrapper">			
+			<span class="hljs-keyword">if</span>(nearestDist &gt;= reactionDist ){
+				buffer = defaultBuffer + originalDist - reactionDist;
+			}
+			
+			<span class="hljs-keyword">if</span>(<span class="hljs-number">2</span>*defaultBuffer &lt; originalDist){
+				movePercent = (originalDist/(originalDist - buffer))*(<span class="hljs-number">1</span>-(nearestDist + buffer)/originalDist);
+			} <span class="hljs-keyword">else</span> {
+				movePercent = <span class="hljs-number">1</span> - nearestDist/originalDist;
+			}
+			
+			<span class="hljs-keyword">if</span>(nearestDist &gt; <span class="hljs-number">5000</span>){
+				movePercent = <span class="hljs-number">1</span>;
+			}
+			
+			<span class="hljs-keyword">if</span>(movePercent &lt; <span class="hljs-number">0</span>){
+				hitX = hit[<span class="hljs-number">0</span>][<span class="hljs-number">0</span>];
+				hitY = hit[<span class="hljs-number">0</span>][<span class="hljs-number">1</span>];
+			} <span class="hljs-keyword">else</span> {
+				hitX = hit[<span class="hljs-number">0</span>][<span class="hljs-number">0</span>] + movePercent*(hit[<span class="hljs-number">1</span>][<span class="hljs-number">0</span>] - hit[<span class="hljs-number">0</span>][<span class="hljs-number">0</span>]);
+				hitY = hit[<span class="hljs-number">0</span>][<span class="hljs-number">1</span>] + movePercent*(hit[<span class="hljs-number">1</span>][<span class="hljs-number">1</span>] - hit[<span class="hljs-number">0</span>][<span class="hljs-number">1</span>]);
+			}
+			
+			
+			fill(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);
+			ellipse(hitX, hitY, hitRadius*<span class="hljs-number">2</span>, hitRadius*<span class="hljs-number">2</span>);
+			
+		} <span class="hljs-keyword">else</span> {
+		}
+		</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>controller visualization 2</p></div></div><div class="code"><div class="wrapper">		
+		<span class="hljs-keyword">if</span>(scroll == <span class="hljs-string">"Down"</span> &amp;&amp; showController === <span class="hljs-literal">true</span>){
+			int j = -<span class="hljs-number">1</span>;
+			<span class="hljs-keyword">for</span>(i=<span class="hljs-number">0</span>; i &lt; notePos[<span class="hljs-number">2</span>].length; i++){
+				<span class="hljs-keyword">if</span>(notePos[<span class="hljs-number">2</span>][i][<span class="hljs-number">1</span>] &gt; receptors[<span class="hljs-number">2</span>][<span class="hljs-number">1</span>]){
+					j = i;
+				}
+			}
+			<span class="hljs-keyword">if</span>(notePos[<span class="hljs-number">2</span>].length - <span class="hljs-number">1</span> &gt; j){
+				j ++;
+			} <span class="hljs-keyword">else</span> {
+				j = -<span class="hljs-number">1</span>;
+			}
+			<span class="hljs-keyword">if</span>(notePos[<span class="hljs-number">2</span>].length == <span class="hljs-number">0</span> || j == -<span class="hljs-number">1</span>){
+				noteA = [-<span class="hljs-number">10000</span>, j];
+			} <span class="hljs-keyword">else</span> {
+				noteA = [notePos[<span class="hljs-number">2</span>][j][<span class="hljs-number">1</span>] , j + <span class="hljs-number">1</span>];
+			}
+			
+			int j = -<span class="hljs-number">1</span>;
+			<span class="hljs-keyword">for</span>(i=<span class="hljs-number">0</span>; i &lt; notePos[<span class="hljs-number">3</span>].length; i++){
+				<span class="hljs-keyword">if</span>(notePos[<span class="hljs-number">3</span>][i][<span class="hljs-number">1</span>] &gt; receptors[<span class="hljs-number">3</span>][<span class="hljs-number">1</span>]){
+					j = i;
+				}
+			}
+			<span class="hljs-keyword">if</span>(notePos[<span class="hljs-number">3</span>].length - <span class="hljs-number">1</span> &gt; j){
+				j ++;
+			} <span class="hljs-keyword">else</span> {
+				j = -<span class="hljs-number">1</span>;
+			}
+			<span class="hljs-keyword">if</span>(notePos[<span class="hljs-number">3</span>].length == <span class="hljs-number">0</span> || j == -<span class="hljs-number">1</span>){
+				noteB = [-<span class="hljs-number">10000</span>, j];
+			} <span class="hljs-keyword">else</span> {
+				noteB = [notePos[<span class="hljs-number">3</span>][j][<span class="hljs-number">1</span>] , j + <span class="hljs-number">1</span>];
+			}
+			</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>if there is no nearest note, do not cause nearest note to update</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">if</span>(noteA[<span class="hljs-number">1</span>] == -<span class="hljs-number">1</span>){
+				noteA = [-<span class="hljs-number">100000</span>, currentNote2[<span class="hljs-number">2</span>]];
+			} 
+			<span class="hljs-keyword">if</span>(noteB[<span class="hljs-number">1</span>] == -<span class="hljs-number">1</span>){
+				noteB = [-<span class="hljs-number">100000</span>, currentNote2[<span class="hljs-number">2</span>]];
+			}
+			
+			<span class="hljs-keyword">if</span>(noteA[<span class="hljs-number">0</span>] &gt; noteB[<span class="hljs-number">0</span>]){
+				nearestDist2 = receptors[<span class="hljs-number">2</span>][<span class="hljs-number">1</span>] - noteA[<span class="hljs-number">0</span>];
+				nearestNote2 = [<span class="hljs-number">0</span>, noteA[<span class="hljs-number">1</span>] + noteLocators[<span class="hljs-number">2</span>] + <span class="hljs-number">1</span>];
+			}
+			<span class="hljs-keyword">if</span>(noteB[<span class="hljs-number">0</span>] &gt; noteA[<span class="hljs-number">0</span>]){
+				nearestDist2 = receptors[<span class="hljs-number">3</span>][<span class="hljs-number">1</span>] - noteB[<span class="hljs-number">0</span>];
+				nearestNote2 = [<span class="hljs-number">1</span>, noteB[<span class="hljs-number">1</span>] + noteLocators[<span class="hljs-number">3</span>] + <span class="hljs-number">1</span>];
+			}
+			<span class="hljs-keyword">if</span>(noteA[<span class="hljs-number">0</span>] ==  noteB[<span class="hljs-number">0</span>]){
+				nearestDist2 = receptors[<span class="hljs-number">2</span>][<span class="hljs-number">1</span>] - noteA[<span class="hljs-number">0</span>];
+				nearestNote2 = [<span class="hljs-number">2</span>, noteA[<span class="hljs-number">1</span>] + noteLocators[<span class="hljs-number">2</span>] + <span class="hljs-number">1</span>];
+			}
+			</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>replace old note with new note when appropriate</p></div></div><div class="code"><div class="wrapper">			<span class="hljs-keyword">if</span>(nearestDist2 &lt; <span class="hljs-number">5000</span> &amp;&amp; ((currentNote2[<span class="hljs-number">0</span>] != nearestNote2[<span class="hljs-number">0</span>]) || (currentNote2[<span class="hljs-number">1</span>] != nearestNote2[<span class="hljs-number">1</span>]))){
+				
+				currentNote2[<span class="hljs-number">0</span>] = nearestNote2[<span class="hljs-number">0</span>];
+				currentNote2[<span class="hljs-number">1</span>] = nearestNote2[<span class="hljs-number">1</span>];
+				originalDist2 = nearestDist2;
+				</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>do up</p></div></div><div class="code"><div class="wrapper">				<span class="hljs-keyword">if</span>(hitDown2 == <span class="hljs-literal">false</span>){
+					hitDown2 = <span class="hljs-literal">true</span>;
+					</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>old = new</p></div></div><div class="code"><div class="wrapper">					hit2[<span class="hljs-number">0</span>] = hit2[<span class="hljs-number">1</span>];
+					
+					<span class="hljs-keyword">if</span>(currentNote2[<span class="hljs-number">0</span>] == <span class="hljs-number">0</span>) {
+						hit2[<span class="hljs-number">1</span>] = [tlButtonX + controllerDist, tlButtonY + buttonRadius + hitRadius];
+					}
+					<span class="hljs-keyword">if</span>(currentNote2[<span class="hljs-number">0</span>] == <span class="hljs-number">1</span>) {
+						hit2[<span class="hljs-number">1</span>] = [tlButtonX + controllerDist + buttonWidth, tlButtonY + buttonRadius + hitRadius];
+					}
+					<span class="hljs-keyword">if</span>(currentNote2[<span class="hljs-number">0</span>] == <span class="hljs-number">2</span>) {
+						hit2[<span class="hljs-number">1</span>] = [tlButtonX + controllerDist + buttonWidth/<span class="hljs-number">2</span>, tlButtonY + hitRadius];
+					}
+					</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>do down</p></div></div><div class="code"><div class="wrapper">				} <span class="hljs-keyword">else</span> {
+					hitDown2 = <span class="hljs-literal">false</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>old = new</p></div></div><div class="code"><div class="wrapper">					hit2[<span class="hljs-number">0</span>] = hit2[<span class="hljs-number">1</span>];
+					<span class="hljs-keyword">if</span>(currentNote2[<span class="hljs-number">0</span>] == <span class="hljs-number">0</span>) {
+						hit2[<span class="hljs-number">1</span>] = [tlButtonX + controllerDist, tlButtonY + buttonHeight - buttonRadius - hitRadius];
+					}
+					<span class="hljs-keyword">if</span>(currentNote2[<span class="hljs-number">0</span>] == <span class="hljs-number">1</span>) {
+						hit2[<span class="hljs-number">1</span>] = [tlButtonX + controllerDist + buttonWidth, tlButtonY + buttonHeight - buttonRadius - hitRadius];
+					}
+					<span class="hljs-keyword">if</span>(currentNote2[<span class="hljs-number">0</span>] == <span class="hljs-number">2</span>) {
+						hit2[<span class="hljs-number">1</span>] = [tlButtonX + controllerDist + buttonWidth/<span class="hljs-number">2</span>, tlButtonY + buttonHeight - hitRadius];
+					}
+				}
+			}
+			</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>calculate percent animation</p></div></div><div class="code"><div class="wrapper">			
+			<span class="hljs-keyword">if</span>(nearestDist2 &gt;= reactionDist ){
+				buffer2 = defaultBuffer + originalDist2 - reactionDist;
+			}
+			
+			<span class="hljs-keyword">if</span>(<span class="hljs-number">2</span>*defaultBuffer &lt; originalDist2){
+				movePercent = (originalDist2/(originalDist2 - buffer2))*(<span class="hljs-number">1</span>-(nearestDist2 + buffer2)/originalDist2);
+			} <span class="hljs-keyword">else</span> {
+				movePercent = <span class="hljs-number">1</span> - nearestDist2/originalDist2;
+			}
+			
+			<span class="hljs-keyword">if</span>(nearestDist2 &gt; <span class="hljs-number">5000</span>){
+				movePercent = <span class="hljs-number">1</span>;
+			}
+			
+			<span class="hljs-keyword">if</span>(movePercent &lt; <span class="hljs-number">0</span>){
+				hitX2 = hit2[<span class="hljs-number">0</span>][<span class="hljs-number">0</span>];
+				hitY2 = hit2[<span class="hljs-number">0</span>][<span class="hljs-number">1</span>];
+			} <span class="hljs-keyword">else</span> {
+				hitX2 = hit2[<span class="hljs-number">0</span>][<span class="hljs-number">0</span>] + movePercent*(hit2[<span class="hljs-number">1</span>][<span class="hljs-number">0</span>] - hit2[<span class="hljs-number">0</span>][<span class="hljs-number">0</span>]);
+				hitY2 = hit2[<span class="hljs-number">0</span>][<span class="hljs-number">1</span>] + movePercent*(hit2[<span class="hljs-number">1</span>][<span class="hljs-number">1</span>] - hit2[<span class="hljs-number">0</span>][<span class="hljs-number">1</span>]);
+			}
+			
+			
+			fill(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>);
+			ellipse(hitX2, hitY2, hitRadius*<span class="hljs-number">2</span>, hitRadius*<span class="hljs-number">2</span>);
+			
+		} <span class="hljs-keyword">else</span> {
+		}
+		
+	}	
+	
+};</div></div></div></div></body></html>
