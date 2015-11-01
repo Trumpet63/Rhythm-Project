@@ -20,8 +20,10 @@ int i = 0;
 var title = "";
 var artist = "";
 var scroll = "Down";
-boolean showController = true;
+boolean showController = false;
 ellipseMode(CENTER);
+var defaultTextSize = 12;
+textSize(defaultTextSize);
 
 // [[beat, bpm], [beat, bpm], ...]
 var bpms = [[,]];
@@ -67,7 +69,7 @@ int millisStart = 0;
 int millisCurrent = 0;
 // speed in units of milliseconds per 10 pixels
 float speed = 18;
-float manualOffset = -0.356;
+float manualOffset = -0.300;
 
 // controller visualization vars
 int buttonRadius = 20;
@@ -108,6 +110,13 @@ boolean hitDown2 = false;
 var noteAngle = 0;
 var innerAngle = 45;
 var noteSize = 65;
+
+// Array Remove - By John Resig (MIT Licensed)
+Array.prototype.remove = function(from, to) {
+  var rest = this.slice((to || from) + 1 || this.length);
+  this.length = from < 0 ? this.length + from : from;
+  return this.push.apply(this, rest);
+};
 
 /** 
  * @function drawArrow
@@ -189,7 +198,6 @@ function drawArrow(arrowAngle, arrowSize, arrowCenter) {
  // Begin stepfile conversion <p></p>
  // Grab stepfile info: title, artist, offset, bpms
 while(lines[i].charAt(0) == "#"){
-	//console.log(lines[i]);
 	if(lines[i].substring(1,lines[i].indexOf(":")) == "TITLE"){
 		title = lines[i].substring(lines[i].indexOf(":")+1,lines[i].indexOf(";"));
 	}
@@ -241,7 +249,8 @@ while(i < lines.length);
 function getNotes(j){
 	lineNotes = [];
 	for(i=0; i < lines[j].length; i++){
-		if(lines[j].charAt(i) == 1){
+		// accept normal notes and hold heads as notes
+		if(lines[j].charAt(i) == 1 || lines[j].charAt(i) == 2){
 			append(lineNotes, i);
 		}
 	}	
@@ -257,77 +266,158 @@ currentLine = difficulties[selectedDifficulty][1];
 
 // begin note conversion loop
 do{
-// count number of notes in a measure
-i = currentLine;
+	// count number of notes in a measure
+	i = currentLine;
 
-// assumes #NOTES ends with a semicolon
-while(lines[i] != "," && lines[i] != ";"){
-	i ++;
-}
-
-// check if the notes have finished, if true, this is last loop
-
-if(lines[i] == ";"){
-	notesEnd = 1;
-} else {
-	notesEnd = 0;
-}
-
-notesInMeasure = i - currentLine;
-// console.log(notesInMeasure);
-
-// get current bpm
-// measureNum is initially 1
-// assumes bpm starts at the beginning of a measure
-// assumes bpms are in chronological order
-i = bpms.length - 1;
-while(bpms[i][0]/4 > measureNum - 1){
-	i --;
-}
-currentBpm = bpms[i][1];
-// console.log(bpms[i][1]);
-
-// get seconds per notes
-secPerNote = 240 / currentBpm / notesInMeasure;
-// console.log(secPerNote);
-
-linesProcessed = 0;
-
-// put notes into array with time values
-if(currentTime == 0 && linesProcessed == 0){
-	getNotes(currentLine);
-	
-	if(lineNotes.length != 0){
-		for(i=0; i < lineNotes.length; i++){
-			append(notes[lineNotes[i]], 0);
-		}
+	// assumes #NOTES ends with a semicolon
+	while(lines[i].substring(0,1) !== "," && lines[i].substring(0,1) !== ";"){
+		i ++;
 	}
-	
-	linesProcessed = 1;
-	currentLine ++;
-	
-} 
-	
-while(linesProcessed < notesInMeasure){
-	currentTime += secPerNote;
-	getNotes(currentLine);
-	
-	if(lineNotes.length != 0){
-		for(i=0; i < lineNotes.length; i++){
-			append(notes[lineNotes[i]], currentTime);
-		}
+
+	// check if the notes have finished, if true, this is last loop
+
+	if(lines[i] == ";"){
+		notesEnd = 1;
+	} else {
+		notesEnd = 0;
 	}
-	linesProcessed ++;
+
+	notesInMeasure = i - currentLine;
+
+	// get current bpm  
+	// measureNum is initially 1  
+	// assumes bpm starts at the beginning of a measure  
+	// assumes bpms are in chronological order
+	i = bpms.length - 1;
+	while(bpms[i][0]/4 > measureNum - 1){
+		i --;
+	}
+	currentBpm = bpms[i][1];
+
+	// get seconds per notes
+	secPerNote = 240 / currentBpm / notesInMeasure;
+
+	linesProcessed = 0;
+
+	// put notes into array with time values
+	if(currentTime == 0 && linesProcessed == 0){
+		getNotes(currentLine);
+		
+		if(lineNotes.length !== 0){
+			for(i=0; i < lineNotes.length; i++){
+				append(notes[lineNotes[i]], 0);
+			}
+		}
+		
+		linesProcessed = 1;
+		currentLine ++;
+		
+	} 
+		
+	while(linesProcessed < notesInMeasure){
+		currentTime += secPerNote;
+		getNotes(currentLine);
+		
+		if(lineNotes.length !== 0){
+			for(i=0; i < lineNotes.length; i++){
+				append(notes[lineNotes[i]], currentTime);
+			}
+		}
+		linesProcessed ++;
+		currentLine ++;
+	}
+
 	currentLine ++;
-}
-
-currentLine ++;
-measureNum ++;
-
-// console.log(linesProcessed + " , " + currentLine + " , " + currentBpm);
+	measureNum ++;
 }
 while(notesEnd == 0);
 // end stepfile conversion <p></p>
+
+// Handle Input Module 1
+window.addEventListener('keydown', handleKeyDown, true)
+window.addEventListener('keyup', handleKeyUp, true)
+var buttonsDown = [0,0,0,0];
+var buttonsPressed = [0,0,0,0];
+var buttonsKeys = [69, 70, 75, 79];
+
+// memory of the notes on screen that have been hit, listed by note number
+var hitMemory = [[],[],[],[]];
+
+// defined repeatedly in the draw loop later
+var hitWindowMin = 0;
+var hitWindowMax = 0;
+
+// the arrays contain the note number for the latest unhit note within the hit window, must initialize at zero, -1 is the null value
+var hitRangeOld = [-1,-1,-1,-1];
+var hitRangeNew = [-1,-1,-1,-1];
+
+// Max late or early, set to FFR standard of 1/60 + 3/30, rounded to nearest whole millisecond
+var timeMiss = 0.117;
+
+// var misses = [0,0,0,0];
+
+// executed on hit only, not on hold
+function causeHit(buttonNum){
+	buttonsPressed[buttonNum] = 1;
+	
+	var success = false;
+	// find note in notePos that matches latest note in hit window
+	// console.log(notePos[buttonNum].length + ", " + hitRangeNew[buttonNum] + ", " + notePos[buttonNum]);
+	var i = 0;
+	while(i < notePos[buttonNum].length){
+		if(hitRangeNew[buttonNum] == notePos[buttonNum][i][2]){
+			success = true;
+			break;
+		}
+		i++
+	}
+	
+	if(success == true){
+		hitRangeOld[buttonNum] = -1;
+		hitRangeNew[buttonNum] = -1;
+		console.log("hit at time " + timeRead + ", number " + notePos[buttonNum][i][2] + ", with accuracy " + (round((notePos[buttonNum][i][4] - timeRead)*1000)) + "ms")
+		hitMemory[buttonNum].push(notePos[buttonNum][i][2]);
+	} else {
+		// cause boo
+		console.log("boo at time " + timeRead);
+	}
+	
+}
+
+function handleKeyDown(event) {
+	for(i=0; i < buttonsDown.length; i++){
+		if(event.keyCode == buttonsKeys[i]){
+		
+		// if button is not being held, trigger as pressing a button
+			if(buttonsDown[i] == 0){
+				causeHit(i);
+			}
+		
+			buttonsDown[i] = 1;
+		}
+	}
+}
+
+function handleKeyUp(event) {
+	for(i=0; i < buttonsDown.length; i++){
+		
+		if(event.keyCode == buttonsKeys[i]){
+			buttonsDown[i] = 0;	
+		}
+		
+	}
+}
+	
+function causeMiss(receptorNumber){
+	fill(0,255,0);
+	textSize(defaultTextSize + 15);
+	text("MISS",200, 300);
+	textSize(defaultTextSize);
+	fill(0,0,0);
+	// misses[receptorNumber] ++;
+}	
+
+// end Handle Input Module 1
 
 
 // initialize time for display loop
@@ -336,6 +426,7 @@ timeInitial = offset + manualOffset;
 noteLocators.length = notes.length;
 
 audio.play();
+
 
 void draw() {
     background(255, 255, 255);
@@ -363,12 +454,15 @@ void draw() {
 		*/
 		
 		// begin note and receptor display loop
+		// requires receptorStart[], minNoteY, maxNoteY (determined by view dimensions and noteHeight)
 		millisCurrent = millis();
 		timeRead = timeInitial + (millisCurrent - millisStart)/1000;
 		text("Read Time = " + timeRead.toFixed(3) + "s", 0, 60);
 		
+		
 		for(i=0; i < receptors.length; i++){
 			
+			// cause movement of receptors
 			receptors[i][0] = receptorStart[i][0] + 11*sin(timeRead + i/3.14);
 			receptors[i][1] = receptorStart[i][1];
 			
@@ -380,22 +474,61 @@ void draw() {
 				minTime = timeRead + (maxNoteY - receptors[i][1])*speed/10000;
 			}
 			
+			// find latest note that will be displayed
 			while(notes[i][noteLocators[i]] < maxTime){
 				noteLocators[i] ++;
 			}
 			
+			// clear positions from last frame
 			notePos[i].length = 0;
 			
-			// populate note positions
+			// initialize j at latest note number
 			j = noteLocators[i];
 			
+			// populate note positions
+			// notePos[i][j] = [x, y, note number, is hit, time position]
+			// "is hit" is meant to make a note disappear after it is hit, which will require a memory of hit notes (not yet implemented)
 			while(notes[i][j] <= minTime){
 				if(scroll == "Down"){
-					notePos[i].push([receptors[i][0], receptors[i][1] - (notes[i][j] - timeRead)*10000/speed]);
+					notePos[i].push([receptors[i][0], receptors[i][1] - (notes[i][j] - timeRead)*10000/speed, j, 0, notes[i][j]]);
 				} else {
-					notePos[i].push([receptors[i][0], receptors[i][1] + (notes[i][j] - timeRead)*10000/speed]);
+					notePos[i].push([receptors[i][0], receptors[i][1] + (notes[i][j] - timeRead)*10000/speed, j, 0, notes[i][j]]);
 				}
 				j++;
+			}
+			
+			// reassign hit state of notes on screen from memory
+			j = 0;
+			while(j < hitMemory[i].length){
+				var k = 0
+				
+				while(k < notePos[i].length){
+					
+					if(hitMemory[i][j] == notePos[i][k][2]){
+						notePos[i][k][3] = 1;
+					}
+					k ++;
+				
+				}
+				
+				j ++;
+			}
+			
+			// clean up memory
+			if(hitMemory[i].length !== 0){
+			
+				if(notePos[i].length !== 0){
+					
+					// if the latest note in memory is no longer on screen, delete it
+					if(hitMemory[i][0] < notePos[i][0][2]){
+						hitMemory[i].remove(0);
+					}
+					
+				} else {	
+
+					// if notPos is empty, clear memory
+					hitMemory[i].length = 0;
+				}				
 			}
 			
 			// draw receptors
@@ -429,18 +562,79 @@ void draw() {
 				if(i == 3){
 					noteAngle = 0;
 				}
-				drawArrow(noteAngle, noteSize, notePos[i][j]);
+				if(notePos[i][j][3] == 0){
+					drawArrow(noteAngle, noteSize, notePos[i][j]);
+				}
 				
+				// Debug notPos[], display info next to each note on screen
 				// if(scroll == "Down"){
 					// var test = timeRead - (notePos[i][j][1] - receptors[i][1])*speed/10000;
 				// } else {
 					// var test = timeRead + (notePos[i][j][1] - receptors[i][1])*speed/10000;
 				// }
-				// text(test.toFixed(3), notePos[i][j][0] + 45, notePos[i][j][1] + 5);
+				// test = notePos[i][j][4];
+				// text(test.toFixed(3) + ", " + notePos[i][j][2], notePos[i][j][0] + 45, notePos[i][j][1] + 5);
 				
 			}
-			
 		}
+		
+		
+		// Handle Input Module 2
+		
+		timeWindowMax = timeRead + timeMiss;
+		timeWindowMin = timeRead - timeMiss;
+		
+		// store the position of the latest unhit note in the hitRange array
+		for(i=0; i < receptors.length; i++){
+			
+			var success = false;
+			
+			for(j=0; j < notePos[i].length; j++){
+				
+				if(notePos[i][j][4] <= timeWindowMax){
+					
+					if(notePos[i][j][4] >= timeWindowMin && notePos[i][j][3] == 0){
+						success = true;
+						break;
+					}
+					
+				} else {
+					break;
+				}		
+			}
+			
+			// fill(0,0,0);
+			// text(misses,0,130);
+			
+			if(success == true){
+				hitRangeNew[i] = notePos[i][j][2];
+			} else {
+				hitRangeNew[i] = -1;
+			}
+			
+			// compare new to old, if different, cause miss
+			if(hitRangeNew[i] !== hitRangeOld[i] && hitRangeOld[i] !== -1){
+				// option to implement receptor-specific miss features
+				causeMiss(i);
+			}
+			
+			// store new on old
+			hitRangeOld[i] = hitRangeNew[i];
+		
+		}
+		
+		// fill(0,0,0);
+		// text(buttonsDown, 0, 100);
+		// text(buttonsPressed, 0, 115);
+		
+		// at end of handle input, default to not pressed
+			for(i=0; i < buttonsPressed.length; i++){
+				buttonsPressed[i] = 0;
+			}
+			
+		// end Handle Input Module 2
+		
+		
 		
 		/**
 		* @module Controller visualization
