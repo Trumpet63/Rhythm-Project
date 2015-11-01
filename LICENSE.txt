@@ -10,6 +10,9 @@
  
  ***/
 
+Method to remove items from arrays has the follow license information:
+Array Remove - By John Resig (MIT Licensed)
+
 Other code not contained within the file processing.js is provided with the following license:
 
 The MIT License (MIT)
