@@ -179,7 +179,6 @@ function drawArrow(arrowAngle, arrowSize, arrowCenter) {
     endShape(CLOSE);
 };
 
-
 /**
  * @module Stepfile conversion 
  * @description Converts the stepfile into note, timing, and other information
@@ -244,10 +243,13 @@ do{
 }
 while(i < lines.length);
 
+console.log(difficulties);
+
 // NOTE: lines array starts counting at zero, therefore values may seem like they are off by one
 
 function getNotes(j){
 	lineNotes = [];
+
 	for(i=0; i < lines[j].length; i++){
 		// accept normal notes and hold heads as notes
 		if(lines[j].charAt(i) == 1 || lines[j].charAt(i) == 2){
@@ -263,6 +265,11 @@ if(selectHardest){
 }
 
 currentLine = difficulties[selectedDifficulty][1];
+
+// fixes issue where if at the start of a difficulty, the .sm file devotes a line to "  // measure 1", the program is expecting note information, and produces an error
+if(lines[currentLine].indexOf('measure') !== -1){
+	currentLine ++;
+}
 
 // begin note conversion loop
 do{
@@ -302,7 +309,7 @@ do{
 	// put notes into array with time values
 	if(currentTime == 0 && linesProcessed == 0){
 		getNotes(currentLine);
-		
+
 		if(lineNotes.length !== 0){
 			for(i=0; i < lineNotes.length; i++){
 				append(notes[lineNotes[i]], 0);
@@ -313,7 +320,7 @@ do{
 		currentLine ++;
 		
 	} 
-		
+	
 	while(linesProcessed < notesInMeasure){
 		currentTime += secPerNote;
 		getNotes(currentLine);
