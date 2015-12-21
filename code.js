@@ -1,4 +1,3 @@
-
 int maxFrameRate = 120;
 int canvasWidth = 650;
 int canvasHeight = 800;
@@ -8,43 +7,26 @@ void setup() {
 	frameRate(maxFrameRate);
 } ;
 
+
 // load stepfile into lines array
-String lines [] = loadStrings("FILEPATH.sm");
+String lines [] = loadStrings("Songs/Sakura.sm");
+
 
 // load music file
-var audio = new Audio("FILEPATH.abc");
+var audio = new Audio("Songs/sakurasakura.ogg");
 audio.preload = "auto";
 
 // misc vars
-int i = 0;
-var title = "";
-var artist = "";
 var scroll = "Down";
 boolean showController = false;
 ellipseMode(CENTER);
 var defaultTextSize = 12;
 textSize(defaultTextSize);
 
-// [[beat, bpm], [beat, bpm], ...]
-var bpms = [[,]];
-
-// [[difficulty, line number], [difficulty, line number], ...]
-array difficulties = [];
-
 // difficulty vars
-boolean selectHardest = 1;
-int selectedDifficulty = 0;
+var selectHardest = 1;
+var selectedDifficulty = 0;
 
-// sm file conversion vars
-int currentLine = 1;
-int measureNum = 1;
-float currentBpm = 0;
-float secPerNote = 0;
-int linesProcessed = 0;
-float currentTime = 0;
-var notes = [[],[],[],[]];
-var lineNotes = [];
-boolean notesEnd = 0;
 
 // note position and display vars
 var notePos = [[[]],[[]],[[]],[[]]];
@@ -64,7 +46,6 @@ float maxNoteY = viewBottom + noteHeight/2;
 var noteLocators = [0,0,0,0];
 float minTime = 0;
 float maxTime = 0;
-float offset = 0;
 int millisStart = 0;
 int millisCurrent = 0;
 // speed in units of milliseconds per 10 pixels
@@ -179,166 +160,20 @@ function drawArrow(arrowAngle, arrowSize, arrowCenter) {
     endShape(CLOSE);
 };
 
-/**
- * @module Stepfile conversion 
- * @description Converts the stepfile into note, timing, and other information
- * @param {array} lines 
- * The stepfile (.sm) with each element of the array being a line text from the file.
- * @return {array} <p>**bpms**</p>
- * - The beats per minute of a section of music and the beat at which that bpm goes into effect, in the form [[beat, bpm], ...] for each change in bpm, with the first bpm being defined at beat 0
- * <p></p>
- * @return {array} <p>**difficulties**</p>
- * - The list of difficulties available within a stepfile, and the line number in lines[] at which the notes for that difficulty start, in the form [[difficulty, line number], ...].
- * <p></p>
- * @return {array} <p>**notes**</p>
- * - All of the notes contained in a specified difficulty, organized so that notes[0] = the set of notes for receptor 1, and notes[i][j] = the time position relative to the start of the notes (does not factor in offset at this point).
- */
- 
- // Begin stepfile conversion <p></p>
- // Grab stepfile info: title, artist, offset, bpms
-while(lines[i].charAt(0) == "#"){
-	if(lines[i].substring(1,lines[i].indexOf(":")) == "TITLE"){
-		title = lines[i].substring(lines[i].indexOf(":")+1,lines[i].indexOf(";"));
-	}
-	if(lines[i].substring(1,lines[i].indexOf(":")) == "ARTIST"){
-		artist = lines[i].substring(lines[i].indexOf(":")+1,lines[i].indexOf(";"));
-	}
-	if(lines[i].substring(1,lines[i].indexOf(":")) == "OFFSET"){
-		offset = float(lines[i].substring(lines[i].indexOf(":")+1,lines[i].indexOf(";")));
-	}
-	
-	// assumes bpms are in one line
-	if(lines[i].substring(1,lines[i].indexOf(":")) == "BPMS"){
-		var bpmString = lines[i].substring(lines[i].indexOf(":")+1,lines[i].indexOf(";"));
-		var bpmSubstrings = bpmString.split(",");
-		for(j=0;j<bpmSubstrings.length;j++){
-			bpms[j] = bpmSubstrings[j].split("=");
-		}
-		// convert the array of strings to an array of floats
-		for(j=0;j<bpms.length;j++){
-			for(k=0;k<2;k++){
-				bpms[j][k] = float(bpms[j][k]);
-			}
-		}
-		
-		console.log(bpms);
-	}
-	i++;
-}
+var parsed = parse(lines);
+var title = parsed["title"];
+var artist = parsed["artist"];
+var offset = parsed["offset"];
+var bpms = parsed["bpms"];
+var difficulties = parsed["difficulties"];
+var notes = parsed["notes"];
 
-// this loop extracts difficulties in the form: ["difficulty", line number where notes start]
-do{	
-
-	while(lines[i] != "#NOTES:" && i < lines.length){
-		i++;
-	}
-
-	if(i+3 < lines.length){
-		i += 3;
-		
-		// encountered bizarre error where difficulties array would simply return "C6" or "C5", fixed after PC restart
-		append(difficulties,[lines[i].substring(5,lines[i].length-1),i+3]);
-	}
-	
-}
-while(i < lines.length);
-
-console.log(difficulties);
-
-// NOTE: lines array starts counting at zero, therefore values may seem like they are off by one
-
-function getNotes(j){
-	lineNotes = [];
-
-	for(i=0; i < lines[j].length; i++){
-		// accept normal notes and hold heads as notes
-		if(lines[j].charAt(i) == 1 || lines[j].charAt(i) == 2){
-			append(lineNotes, i);
-		}
-	}	
-}
-
-if(selectHardest){
+if (selectHardest) {
  	selectedDifficulty = difficulties.length - 1;
- } else {
+}
+else {
 	// user prompt to select difficulty goes here
 }
-
-currentLine = difficulties[selectedDifficulty][1];
-
-// fixes issue where if at the start of a difficulty, the .sm file devotes a line to "  // measure 1", the program is expecting note information, and produces an error
-if(lines[currentLine].indexOf('measure') !== -1){
-	currentLine ++;
-}
-
-// begin note conversion loop
-do{
-	// count number of notes in a measure
-	i = currentLine;
-
-	// assumes #NOTES ends with a semicolon
-	while(lines[i].substring(0,1) !== "," && lines[i].substring(0,1) !== ";"){
-		i ++;
-	}
-
-	// check if the notes have finished, if true, this is last loop
-
-	if(lines[i] == ";"){
-		notesEnd = 1;
-	} else {
-		notesEnd = 0;
-	}
-
-	notesInMeasure = i - currentLine;
-
-	// get current bpm  
-	// measureNum is initially 1  
-	// assumes bpm starts at the beginning of a measure  
-	// assumes bpms are in chronological order
-	i = bpms.length - 1;
-	while(bpms[i][0]/4 > measureNum - 1){
-		i --;
-	}
-	currentBpm = bpms[i][1];
-
-	// get seconds per notes
-	secPerNote = 240 / currentBpm / notesInMeasure;
-
-	linesProcessed = 0;
-
-	// put notes into array with time values
-	if(currentTime == 0 && linesProcessed == 0){
-		getNotes(currentLine);
-
-		if(lineNotes.length !== 0){
-			for(i=0; i < lineNotes.length; i++){
-				append(notes[lineNotes[i]], 0);
-			}
-		}
-		
-		linesProcessed = 1;
-		currentLine ++;
-		
-	} 
-	
-	while(linesProcessed < notesInMeasure){
-		currentTime += secPerNote;
-		getNotes(currentLine);
-		
-		if(lineNotes.length !== 0){
-			for(i=0; i < lineNotes.length; i++){
-				append(notes[lineNotes[i]], currentTime);
-			}
-		}
-		linesProcessed ++;
-		currentLine ++;
-	}
-
-	currentLine ++;
-	measureNum ++;
-}
-while(notesEnd == 0);
-// end stepfile conversion <p></p>
 
 // Handle Input Module 1
 window.addEventListener('keydown', handleKeyDown, true)
