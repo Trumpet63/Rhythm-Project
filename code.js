@@ -9,11 +9,11 @@ void setup() {
 
 
 // load stepfile into lines array
-String lines [] = loadStrings("Songs/Sakura.sm");
+String lines [] = loadStrings("FILENAME.sm");
 
 
 // load music file
-var audio = new Audio("Songs/sakurasakura.ogg");
+var audio = new Audio("FILENAME.abc");
 audio.preload = "auto";
 
 // misc vars
