@@ -46,8 +46,8 @@ function getBpm(bpms, b) {
     while (i < bpms.length && Math.floor(bpms[i][0]) == b) {
         beatBpms.push(bpms[i]);
         i++;
-    } 
-
+    }
+    
     return beatBpms;
 }
 
@@ -136,7 +136,7 @@ function parseBeat(lines, start, end, beatNum, bpms) {
     var nextSecPerNote, beatChangeFrac;
 
     while (i != end) {
-        secPerNote = getSecPerNote(bpms[curBpmInd][1], (end-start));
+        secPerNote = getSecPerNote(beatBpms[curBpmInd][1], (end-start));
 
         // check whether the bpm changes mid-beat
         if (beatBpms.length == 1) { // if there's only one bpm
@@ -146,7 +146,7 @@ function parseBeat(lines, start, end, beatNum, bpms) {
             numNotes = end - i;
         }
         else { // there is a bpm change
-            numNotes = Math.floor((bpms[nextBpmInd][0]-beatNum-fracElapsed) / beatFrac);
+            numNotes = Math.floor((beatBpms[nextBpmInd][0]-beatNum-fracElapsed) / beatFrac);
         }
 
         // add all notes with the same bpm
@@ -161,8 +161,8 @@ function parseBeat(lines, start, end, beatNum, bpms) {
 
         // if the bpm changed mid-beat, parse the note on which it changed
         if (i != end) {
-            nextSecPerNote = getSecPerNote(bpms[nextBpmInd][1], (end-start));
-            beatChangeFrac = (bpms[nextBpmInd][0]-beatNum) - beatFrac;
+            nextSecPerNote = getSecPerNote(beatBpms[nextBpmInd][1], (end-start));
+            beatChangeFrac = (beatBpms[nextBpmInd][0]-beatNum) - beatFrac;
 
             notes = addNotes(notes, lines[i], timeElapsed);
 
